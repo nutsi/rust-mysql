@@ -1,0 +1,38 @@
+use std::libc::{c_uint, c_void, c_schar, c_ulong, c_uchar, c_char, c_int};
+
+pub struct st_net {
+    vio: *c_void,
+    buff: *c_char,
+    buff_end: *c_char,
+    write_pos: *c_char,
+    read_pos: *c_char,
+    fd: c_int,
+    remain_in_buf: c_ulong,
+    lenght: c_ulong,
+    buf_length: c_ulong,
+    where_b: c_ulong,
+    max_packet: c_ulong,
+    max_packet_size: c_ulong,
+    pkt_nr: c_uint,
+    compress_pkt_nr: c_uint,
+    write_timeout: c_uint,
+    read_timeout: c_uint,
+    retry_count: c_uint,
+    fcntl: c_int,
+    return_status: *c_uint,
+    reading_or_writting: c_uchar,
+    save_char: c_char,
+    unused1: c_char,
+    unused2: c_char,
+    compress: c_char,
+    unused3: c_char,
+    unused: *c_char,
+    last_errno: c_uint,
+    error: c_uchar,
+    unused4: c_char,
+    unused5: c_char,
+    last_error: [c_schar, ..512u],
+    sqlstate: [c_schar, ..6u],
+    extension: *c_void
+}
+pub type NET = st_net;
