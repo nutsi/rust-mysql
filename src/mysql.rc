@@ -1,0 +1,9 @@
+use mysql::{MYSQL, init};
+
+pub mod mysql;
+mod mysql_com;
+mod mysql_ot;
+
+fn main() {
+    let opt = init();
+}
