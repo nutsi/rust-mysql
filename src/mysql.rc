@@ -1,9 +1,12 @@
-use mysql::{MYSQL, init};
-
 pub mod mysql;
 mod mysql_com;
 mod mysql_ot;
 
 fn main() {
-    let opt = init();
+    let opt = mysql::create();
+    let ret = match mysql::real_connect(opt.unwrap(), "127.0.0.1", "root", "root",
+                                        "world", 0) {
+        None => { println("nop bad luck"); return ; }
+        Some(x) => { println("C'est tout bon"); x }
+    };
 }

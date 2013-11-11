@@ -1,63 +1,12 @@
 use mysql_com::NET;
-use mysql_ot::{LIST, MEM_ROOT};
-use std::libc::{c_uint, c_void, c_schar, c_ulong, c_uchar, c_int, c_ulonglong};
+use mysql_ot::{LIST, MEM_ROOT, st_mysql_options};
+use std::libc::{c_uint, c_void, c_schar, c_ulong, c_uchar, c_ulonglong};
 use std::ptr;
 
 type c_bool = c_schar;
 
-type st_mysql_options_extention = c_void;
 type mysql_status = c_uint;
 type st_mysql_methods = c_void;
-type st_dynamic_array = c_void;
-
-struct st_mysql_options {
-    connect_timeout: c_uint,
-    read_timeout: c_uint,
-    write_timeout: c_uint,
-    port: c_uint,
-    protocol: c_uint,
-    client_flag: c_ulong,
-    host: *mut c_schar,
-    user: *mut c_schar,
-    password: *mut c_schar,
-    unix_socket: *mut c_schar,
-    db: *mut c_schar,
-    init_commands: *mut st_dynamic_array,
-    my_cnf_file: *mut c_schar,
-    my_cnf_group: *mut c_schar,
-    charset_dir: *mut c_schar,
-    charset_name: *mut c_schar,
-    ssl_key: *mut c_schar,
-    ssl_cert: *mut c_schar,
-    ssl_ca: *mut c_schar,
-    ssl_capath: *mut c_schar,
-    ssl_cipher: *mut c_schar,
-    shared_memory_base_name: *mut c_schar,
-    max_allowed_packet: c_ulong,
-    use_ssl: c_bool,
-    compress: c_bool,
-    named_pipe: c_bool,
-    unused1: c_bool,
-    unused2: c_bool,
-    unused3: c_bool,
-    unused4: c_bool,
-    methods_to_use: enum_mysql_option,
-    client_ip: *mut c_schar,
-    secure_auth: c_bool,
-    report_data_truncation: c_bool,
-    local_infile_init: extern "C" fn
-                           (arg1: *mut *mut c_void, arg2: *c_schar,
-                            arg3: *mut c_void) -> c_int,
-    local_infile_read: extern "C" fn
-                           (arg1: *mut c_void, arg2: *mut c_schar,
-                            arg3: c_uint) -> c_int,
-    local_infile_end: extern "C" fn(arg1: *mut c_void),
-    local_infile_error: extern "C" fn
-                            (arg1: *mut c_void, arg2: *mut c_schar,
-                             arg3: c_uint) -> c_int,
-    local_infile_userdata: *mut c_void,
-    extension: *mut st_mysql_options_extention,
-}
 
 enum enum_field_types {
 }
@@ -133,25 +82,43 @@ struct st_mysql {
 
 type st_charset_info_set = c_void;
 type MYSQL_FIELD = st_mysql_field;
-type enum_mysql_option = c_uint;
-
 pub type MYSQL = st_mysql;
 
 
 #[link_args = "-L/usr/lib/mysql/ -lmysqlclient"]
 extern "C" {
     fn mysql_init(mysql: *MYSQL) -> *mut MYSQL;
+    fn mysql_real_connect(mysql: *mut MYSQL, host: *c_schar,
+                          user: *c_schar, passwd: *c_schar,
+                          db: *c_schar, port: c_uint,
+                          unix_socket: *c_schar,client_flag: c_ulong)
+                          -> *mut MYSQL;
 }
 
 #[fixed_stack_segment]
-pub fn init() -> Option<*mut MYSQL> {
-    let mut titi: *mut MYSQL;
+pub fn create() -> Option<*mut MYSQL> {
     unsafe {
         let toto: *MYSQL = ptr::null();
-        titi = mysql_init(toto);
+        let titi = mysql_init(toto);
         if ptr::is_null(titi) {
             return None; }
         return Some(titi);
     }
 }
+
+#[fixed_stack_segment]
+pub fn real_connect(mut mysql: *mut MYSQL, host: &str, user: &str, passwd: &str,
+                    db: &str, port: c_uint) -> Option<*mut MYSQL> {
+    let unix_sock: *c_schar = ptr::null();
+    host.to_c_str().with_ref(|ho|
+                             user.to_c_str().with_ref(|us|
+                                                      passwd.to_c_str().with_ref(|pass| db.to_c_str().with_ref(|d| unsafe {
+                        mysql = mysql_real_connect(mysql, ho, us, pass, d, port,
+                                                   unix_sock, 0); }))));
+    if ptr::is_null(mysql) {
+        return None; }
+    return Some(mysql);
+}
+
+
 
