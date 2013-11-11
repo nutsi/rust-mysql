@@ -1,12 +1,16 @@
+#[link(name = "mysql",
+       vers = "0.1",
+       uuid = "0ce89b41-2f92-459e-bbc1-8f5fe32f16cf",
+       url = "http://github.com/nutsi/rust-mysql")];
+
+
+#[crate_type = "lib"];
+
+extern mod std;
+
+
 pub mod mysql;
 mod mysql_com;
 mod mysql_ot;
 
-fn main() {
-    let opt = mysql::create();
-    let ret = match mysql::real_connect(opt.unwrap(), "127.0.0.1", "root", "root",
-                                        "world", 0) {
-        None => { println("nop bad luck"); return ; }
-        Some(x) => { println("C'est tout bon"); x }
-    };
-}
+
