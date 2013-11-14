@@ -8,7 +8,7 @@ lib:
 	$(RUSTC) -o build/lib/mysql src/mysql.rc --lib
 
 examples:
-	$(RUSTC) -Lbuild/lib -o build/examples example/first_example.rs
+	$(RUSTC) -Lbuild/lib -o build/examples/first_example example/first_example.rs
 
 clean:
 	rm -rf build
