@@ -2,6 +2,8 @@ use mysql_com::NET;
 use mysql_ot::{LIST, MEM_ROOT, st_mysql_options, enum_mysql_option};
 use std::libc::{c_uint, c_void, c_schar, c_ulong, c_uchar, c_ulonglong, c_int};
 use std::ptr;
+use std::vec;
+use std::str;
 
 type c_bool = c_schar;
 
@@ -9,6 +11,42 @@ type mysql_status = c_uint;
 type st_mysql_methods = c_void;
 
 enum enum_field_types {
+}
+
+pub type MYSQL_ROW = * * c_schar;
+
+struct st_mysql_data {
+    data: *mut MYSQL_ROWS,
+    embedded_info: *mut c_void,
+    alloc: MEM_ROOT,
+    rows: c_ulonglong,
+    fields: c_uint,
+    extension: *mut c_void,
+}
+pub type MYSQL_DATA = st_mysql_data;
+
+struct st_mysql_rows {
+    next: *mut st_mysql_rows,
+    data: MYSQL_ROW,
+    length: c_ulong
+}
+
+struct st_mysql_res {
+    row_count: c_ulonglong,
+    fields: *mut MYSQL_FIELD,
+    data: *mut MYSQL_DATA,
+    data_cursor: *mut MYSQL_ROWS,
+    lengths: *mut c_ulong,
+    handle: *mut MYSQL,
+    methods: *st_mysql_methods,
+    row: MYSQL_ROW,
+    current_row: MYSQL_ROW,
+    field_alloc: MEM_ROOT,
+    field_count: c_uint,
+    current_field: c_uint,
+    eof: c_bool,
+    unbuffered_fetch_cancelled: c_bool,
+    extension: *mut c_void,
 }
 
 struct st_mysql_field {
@@ -83,6 +121,8 @@ struct st_mysql {
 type st_charset_info_set = c_void;
 type MYSQL_FIELD = st_mysql_field;
 pub type MYSQL = st_mysql;
+type MYSQL_RES = st_mysql_res;
+type MYSQL_ROWS = st_mysql_rows;
 
 
 #[link_args = "-L/usr/lib/mysql/ -lmysqlclient"]
@@ -138,6 +178,11 @@ extern "C" {
     fn mysql_ssl_set(mysql: *mut MYSQL, key: *c_schar, cert: *c_schar,
                      ca: *c_schar, capath: *c_schar, cipher: *c_schar) -> c_bool;
     fn mysql_stat(mysql: *mut MYSQL) -> *c_schar;
+    fn mysql_use_result(mysql: *mut MYSQL) -> *mut MYSQL_RES;
+    fn mysql_num_fields(res: *mut MYSQL_RES) -> c_uint;
+    fn mysql_fetch_row(res: *mut MYSQL_RES) -> MYSQL_ROW;
+    fn mysql_fetch_lengths(res: *mut MYSQL_RES) -> *c_ulong;
+    fn mysql_free_result(res: *mut MYSQL_RES);
 }
 
 #[fixed_stack_segment]
@@ -168,5 +213,58 @@ pub fn real_connect(mut mysql: *mut MYSQL, host: &str, user: &str, passwd: &str,
 #[fixed_stack_segment]
 pub fn close(mysql: *mut MYSQL) -> () {
     unsafe { mysql_close(mysql); }
+}
+
+#[fixed_stack_segment]
+pub fn query(mysql: *mut MYSQL, query: &str) -> int {
+    let mut t: c_int = 0;
+    query.to_c_str().with_ref(|q | unsafe { t = mysql_query(mysql, q); });
+    return t as int;
+}
+
+#[fixed_stack_segment]
+pub fn use_result(mysql: *mut MYSQL) -> (int, ~[~str]) {
+    let mut tab: ~[~str] = ~[];
+    unsafe {
+        let res = mysql_use_result(mysql);
+        let t = mysql_num_fields(res) as int;
+        println!("{:i}", t);
+
+        loop {
+            let row = mysql_fetch_row(res);
+            if ptr::is_not_null(row) {
+                let length = mysql_fetch_lengths(res);
+                let test = vec::raw::from_buf_raw(length, t as uint);
+                for j in range(0, t) {
+                    for e in range(0, t) {
+                        let n = ptr::offset(row, e as int);
+                        let chaine = str::raw::from_c_str(*n);
+                        tab.push(chaine.clone());
+                    }
+                    println!("{:i}", test[j] as int);
+                }
+            }
+            else {
+                break;
+            }
+        }
+        mysql_free_result(res);
+    }
+    (1, tab)
+}
+
+#[fixed_stack_segment]
+pub fn errno(mysql: *mut MYSQL) -> uint {
+    unsafe {
+        mysql_errno(mysql) as uint
+    }
+}
+
+#[fixed_stack_segment]
+pub fn error(mysql: *mut MYSQL) -> ~str {
+    unsafe {
+        let ret = str::raw::from_c_str(mysql_error(mysql));
+        return ret;
+    }
 }
 
