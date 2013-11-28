@@ -228,21 +228,16 @@ pub fn use_result(mysql: *mut MYSQL) -> (int, ~[~str]) {
     unsafe {
         let res = mysql_use_result(mysql);
         let t = mysql_num_fields(res) as int;
-        println!("{:i}", t);
-
         loop {
             let row = mysql_fetch_row(res);
             if ptr::is_not_null(row) {
                 let length = mysql_fetch_lengths(res);
-                let test = vec::raw::from_buf_raw(length, t as uint);
-                for j in range(0, t) {
+                /*let test =*/ vec::raw::from_buf_raw(length, t as uint);
                     for e in range(0, t) {
                         let n = ptr::offset(row, e as int);
                         let chaine = str::raw::from_c_str(*n);
                         tab.push(chaine.clone());
                     }
-                    println!("{:i}", test[j] as int);
-                }
             }
             else {
                 break;
